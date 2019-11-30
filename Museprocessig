@@ -1,0 +1,179 @@
+#library(eegUtils)
+library(eegkit)
+
+#read.table(file = 'fon_closed.tsv', sep = '\t', header = TRUE)
+#install_github("craddm/eegUtils")
+library(rhdf5)
+
+##import h5 data
+#h5ls("fon_closed.h5")
+closed <-  h5read("fon_closed.h5", "/IXDATA/raw/")
+opened <- h5read("fon_opened.h5", "/IXDATA/raw/")
+first <- h5read("1st.h5", "/IXDATA/raw/")
+second <- h5read("2nd.h5", "/IXDATA/raw/")
+third <- h5read("3rd.h5", "/IXDATA/raw/")
+
+##select eeg data
+closed_eeg <- as.matrix(closed$eeg$data)
+opened_eeg <- as.matrix(opened$eeg$data)
+first_eeg <- as.matrix(first$eeg$data)
+second_eeg <- as.matrix(second$eeg$data)
+third_eeg <- as.matrix(third$eeg$data)
+
+colnames(first_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(second_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(third_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(closed_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(opened_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+mode(opened_eeg)
+
+##filter data
+#closed_eeg <- eegfilter(x = closed_eeg, Fs = 220, lower = 1, upper = 49)
+#opened_eeg <- eegfilter(x = opened_eeg, Fs = 220, lower = 1, upper = 49)
+#eegtime(time=closed$eeg$times, voltage = closed$eeg$data[,1], flipvoltage = F,
+#        slwd = 0.01)
+
+
+##FFT do identify power spectral density of ALPHA
+alpha_psd_closed <- eegfft(x = closed_eeg, Fs = 220, lower = 7.5, upper = 13)
+alpha_psd_opened <- eegfft(x = opened_eeg, Fs = 220, lower = 7.5, upper = 13)
+
+reactivity <- mean(alpha_psd_opened$strength) / mean(alpha_psd_closed$strength)
+
+alpha_psd_first <- eegfft(x = first_eeg, Fs = 220, lower = 7.5, upper = 13)
+alpha_psd_second <- eegfft(x = second_eeg, Fs = 220, lower = 7.5, upper = 13)
+alpha_psd_third <- eegfft(x = third_eeg, Fs = 220, lower = 7.5, upper = 13)
+
+ln_asym_TP_first <- log(alpha_psd_first$strength[,1]) - log(alpha_psd_first$strength[,4])
+TP_asym_first <- mean(ln_asym_TP_first)
+ln_asym_FP_first <- log(alpha_psd_first$strength[,2]) - log(alpha_psd_first$strength[,3])
+FP_asym_first <- mean(ln_asym_FP_first)
+
+ln_asym_TP_second <- log(alpha_psd_second$strength[,1]) - log(alpha_psd_second$strength[,4])
+TP_asym_second <- mean(ln_asym_TP_second)
+ln_asym_FP_second <- log(alpha_psd_second$strength[,2]) - log(alpha_psd_second$strength[,3])
+FP_asym_second <- mean(ln_asym_FP_second)
+
+ln_asym_TP_third <- log(alpha_psd_third$strength[,1]) - log(alpha_psd_third$strength[,4])
+TP_asym_third <- mean(ln_asym_TP_third)
+ln_asym_FP_third <- log(alpha_psd_third$strength[,2]) - log(alpha_psd_third$strength[,3])
+FP_asym_third <- mean(ln_asym_FP_third)
+
+alpha_asymmetry <- cbind(c("TP9 - TP10 alpha first", "FP1 - FP2 alpha first",
+                           "TP9 - TP10 alpha second", "FP1 - FP2 alpha second",
+                           "TP9 - TP10 alpha third", "FP1 - FP2 alpha third"), 
+                         c(TP_asym_first, FP_asym_first, TP_asym_second, FP_asym_second, 
+                           TP_asym_third, FP_asym_third))
+
+##FFT do identify power spectral density of GAMMA
+gamma_psd_first <- eegfft(x = first_eeg, Fs = 220, lower = 35, upper = 49)
+gamma_psd_second <- eegfft(x = second_eeg, Fs = 220, lower = 35, upper = 49)
+gamma_psd_third <- eegfft(x = third_eeg, Fs = 220, lower = 35, upper = 49)
+
+ln_asym_TP_first <- log(gamma_psd_first$strength[,1]) - log(gamma_psd_first$strength[,4])
+TP_asym_first <- mean(ln_asym_TP_first)
+ln_asym_FP_first <- log(gamma_psd_first$strength[,2]) - log(gamma_psd_first$strength[,3])
+FP_asym_first <- mean(ln_asym_FP_first)
+
+ln_asym_TP_second <- log(gamma_psd_second$strength[,1]) - log(gamma_psd_second$strength[,4])
+TP_asym_second <- mean(ln_asym_TP_second)
+ln_asym_FP_second <- log(gamma_psd_second$strength[,2]) - log(gamma_psd_second$strength[,3])
+FP_asym_second <- mean(ln_asym_FP_second)
+
+ln_asym_TP_third <- log(gamma_psd_third$strength[,1]) - log(gamma_psd_third$strength[,4])
+TP_asym_third <- mean(ln_asym_TP_third)
+ln_asym_FP_third <- log(gamma_psd_third$strength[,2]) - log(gamma_psd_third$strength[,3])
+FP_asym_third <- mean(ln_asym_FP_third)
+
+gamma_asymmetry <- cbind(c("TP9 - TP10 gamma first", "FP1 - FP2 gamma first",
+                           "TP9 - TP10 gamma second", "FP1 - FP2 gamma second",
+                           "TP9 - TP10 gamma third", "FP1 - FP2 gamma third"), 
+                         c(TP_asym_first, FP_asym_first, TP_asym_second, FP_asym_second, 
+                           TP_asym_third, FP_asym_third))
+
+#Asymmetry data
+#asymmetry <- cbind(c("TP9 - TP10 alpha closed", "FP1 - FP2 alpha closed",
+#                     "TP9 - TP10 alpha opened", "FP1 - FP2 alpha opened",
+#                     "TP9 - TP10 gamma closed", "FP1 - FP2 gamma closed",
+#                     "TP9 - TP10 gamma opened", "FP1 - FP2 gamma opened"), 
+#                   c(TP_asym_closed, FP_asym_closed, TP_asym_opened, FP_asym_opened, 
+#                     gTP_asym_closed, gFP_asym_closed, gTP_asym_opened, gFP_asym_opened))
+
+##plot spectral characteristics of the data
+png(filename="alpha_first.png")
+eegpsd(first_eeg, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="gamma_first.png")
+eegpsd(first_eeg, Fs=220, lower = 35, upper = 49)
+dev.off()
+
+png(filename="alpha_second.png")
+eegpsd(second_eeg, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="gamma_second.png")
+eegpsd(second_eeg, Fs=220, lower = 35, upper = 49)
+dev.off()
+
+png(filename="alpha_third.png")
+eegpsd(third_eeg, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="gamma_third.png")
+eegpsd(third_eeg, Fs=220, lower = 35, upper = 49)
+dev.off()
+
+#plot(data)
+install_github("craddm/eegUtils")
+
+
+#data$V6 <- 1:nrow(data)
+#for (i in 1:nrow(data)){
+#  data[i,5] <- 1 + i %/% 220
+#}
+#timeraw <- as.matrix(data[, 1:4])
+#times <- as.matrix(data$V6)
+#ggplot(data, aes(FP1, V6)) + geom_line()
+#ch <- c('TP9', 'FP1', 'FP2', 'TP10')
+#data$times <- closed$eeg$times
+#eegtimemc(time=times, voltmat = raw,channel = ch)
+#eegtime(time=data$times, voltage = data$TP10, flipvoltage = F,
+#        slwd = 0.01)
+
+##preparation for ica
+# first remember the names
+#n <- colnames(data)
+#n
+# transpose all but the first column (name)
+#closedt <- as.matrix(t(closed_eeg))
+
+#results <- mclapply(closedt, eegica( nc = 4, center = F, maxit = 4, method = 'fast', type = 'space'))
+
+#colnames(ERc) <- n
+#datac$myfactor <- factor(n)
+#datac <-datac[-5,]
+#datac <- as.numeric(datac)
+#numCores <- detectCores()
+#cl <- makeCluster(numCores)
+#clusterEvalQ(cl, {
+#  library(eegkit)
+#})
+#parSapply(cl, closedt, eegica(closedt, nc = 4, center = F, maxit = 4, method = 'fast', type = 'space'))
+#stopCluster(cl)
+#ica.res <- eegica(closedt, nc = 4, center = F, method = 'fast', type = 'space', tol = 0.05)
+#ica2 <- fICA(closedt, method = "sym2")
+
+##plot ica components
+#components <- as.matrix(ica_closed_space$S)
+#components$times <- as.matrix(data$times)
+#eegtime(time=data$times, voltage = components[,4], flipvoltage = F,
+#        slwd = 0.01)
+#mode(components)
+
+## write data
+write.csv(x = alpha_asymmetry, file = "alpha_asymmetry.csv")
+write.csv(x = gamma_asymmetry, file = "gamma_asymmetry.csv")
+
+write.csv(x = first_eeg, file = "first.csv", row.names = F)
+write.csv(x = second_eeg, file = "second.csv", row.names = F)
+write.csv(x = third_eeg, file = "third.csv", row.names = F)
+#write.csv(x = first_eeg, file = "first.csv", row.names = F)
+rm(list=ls())
