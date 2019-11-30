@@ -1,0 +1,159 @@
+library(eegkit)
+library(rhdf5)
+library(ggplot2)
+
+#import data
+first <- h5read("1st.h5", "/IXDATA/raw/")
+second <- h5read("2nd.h5", "/IXDATA/raw/")
+third <- h5read("3rd.h5", "/IXDATA/raw/")
+time1 <- first$eeg$times
+time2 <- second$eeg$times
+time3 <- third$eeg$times
+
+#prepare raw eeg
+first_eeg <- as.data.frame(first$eeg$data)
+second_eeg <- as.data.frame(second$eeg$data)
+third_eeg <- as.data.frame(third$eeg$data)
+colnames(first_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(second_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+colnames(third_eeg) <- c('TP9', 'FP1', 'FP2', 'TP10')
+wd <- getwd()
+#alpha_psd_first <- eegfft(x = first_eeg, Fs = 220, lower = 7.5, upper = 13)
+#alpha_psd_second <- eegfft(x = second_eeg, Fs = 220, lower = 7.5, upper = 13)
+#alpha_psd_third <- eegfft(x = third_eeg, Fs = 220, lower = 7.5, upper = 13)
+setwd("D:/WillOwl")
+#prepare time data
+time.first <- read.csv(file = 'time_first.csv', header = F,
+                       sep = ';', encoding = 'UTF-8')
+time.second <- read.csv(file = 'time_second.csv', header = F,
+                       sep = ';', encoding = 'UTF-8')
+time.third <- read.csv(file = 'time_third.csv', header = F,
+                       sep = ';', encoding = 'UTF-8')
+time.first[,1] <- as.numeric(levels(time.first[,1]))[time.first[,1]]
+time.first[1,1] <- 1
+time.second[,1] <- as.numeric(levels(time.second[,1]))[time.second[,1]]
+time.second[1,1] <- 1
+time.third[,1] <- as.numeric(levels(time.third[,1]))[time.third[,1]]
+time.third[1,1] <- 1
+
+setwd(wd)
+#identification of epochs
+time1 <- as.data.frame(sapply(time1, function(x) floor(x)))
+t1 <- data.frame(matrix(NA, nrow = nrow(time1), ncol=1))
+time1 <- as.data.frame(time1[-c(which(time1[,1]> time1[1,1]+nrow(time.first)-1)),])
+#i <- 1333
+#t1[,1] <-
+#apply(time1, 1, function(i) time.first[which(time.first[,1]==sum(time1[i,1],-time1[1,1],1)),2])
+#t1 <- apply(time1, 1, function(i) as.numeric(time.first[time.first[,1]==sum(time1[i,1],-time1[1,1],1),2]))
+
+for (i in 1:nrow(time1)) {
+  mom <- time1[i,1]
+  index2 <- sum(mom,-time1[1,1],1)
+  t1[i,1] <- as.numeric(time.first[time.first[,1]==index2,2])
+}
+
+
+time2 <- as.data.frame(sapply(time2, function(x) floor(x)))
+time2 <- as.data.frame(time2[-c(which(time2[,1]> time2[1,1]+nrow(time.second)-1)),])
+t2 <- data.frame(matrix(NA, nrow = nrow(time2), ncol=1))
+for (i in 1:nrow(time2)) {
+  mom <- time2[i,1]
+  index2 <- sum(mom,-time2[1,1],1)
+  t2[i,1] <- as.numeric(time.second[time.second[,1]==index2,2])
+}
+
+time3 <- as.data.frame(sapply(time3, function(x) floor(x)))
+time3 <- as.data.frame(time3[-c(which(time3[,1]> time3[1,1]+nrow(time.third)-1)),])
+t3 <- data.frame(matrix(NA, nrow = nrow(time3), ncol=1))
+for (i in 1:nrow(time3)) {
+  mom <- time3[i,1]
+  index2 <- sum(mom,-time3[1,1],1)
+  t3[i,1] <- as.numeric(time.third[time.third[,1]==index2,2])
+}
+
+#mariking epoches
+first_eeg[1:nrow(t1), 5] <- t1[,1]
+first_eeg <- as.data.frame(first_eeg[-c(nrow(t1)+1:nrow(first_eeg)),])
+second_eeg[1:nrow(t2), 5] <- t2[,1]
+second_eeg <- as.data.frame(second_eeg[-c(nrow(t2)+1:nrow(second_eeg)),])
+third_eeg[1:nrow(t3), 5] <- t3[,1]
+third_eeg <- as.data.frame(third_eeg[-c(nrow(t3)+1:nrow(third_eeg)),])
+
+#fft for each category of pictures
+p1 <- first_eeg[which(first_eeg[,5]==1),1:4]
+n1 <- first_eeg[which(first_eeg[,5]==0),1:4]
+p1.fft <- eegfft(x = p1, Fs = 220, lower = 7.5, upper = 13)
+p1.TP <- log(p1.fft$strength[,1]) - log(p1.fft$strength[,4])
+mean(p1.TP)
+p1.FP <- log(p1.fft$strength[,2]) - log(p1.fft$strength[,3])
+mean(p1.FP)
+n1.fft <- eegfft(x = n1, Fs = 220, lower = 7.5, upper = 13)
+n1.TP <- log(n1.fft$strength[,1]) - log(n1.fft$strength[,4])
+mean(n1.TP)
+n1.FP <- log(n1.fft$strength[,2]) - log(n1.fft$strength[,3])
+mean(n1.FP)
+
+p2 <- second_eeg[which(second_eeg[,5]==1),1:4]
+s2 <- second_eeg[which(second_eeg[,5]==2),1:4]
+p2.fft <- eegfft(x = p2, Fs = 220, lower = 7.5, upper = 13)
+p2.TP <- log(p2.fft$strength[,1]) - log(p2.fft$strength[,4])
+mean(p2.TP)
+p2.FP <- log(p2.fft$strength[,2]) - log(p2.fft$strength[,3])
+mean(p2.FP)
+s2.fft <- eegfft(x = s2, Fs = 220, lower = 7.5, upper = 13)
+s2.TP <- log(s2.fft$strength[,1]) - log(s2.fft$strength[,4])
+mean(s2.TP)
+s2.FP <- log(s2.fft$strength[,2]) - log(s2.fft$strength[,3])
+mean(s2.FP)
+
+p3 <- third_eeg[which(third_eeg[,5]==1),1:4]
+n3 <- third_eeg[which(third_eeg[,5]==0),1:4]
+p3.fft <- eegfft(x = p3, Fs = 220, lower = 7.5, upper = 13)
+p3.TP <- log(p3.fft$strength[,1]) - log(p3.fft$strength[,4])
+mean(p3.TP)
+p3.FP <- log(p3.fft$strength[,2]) - log(p3.fft$strength[,3])
+mean(p3.FP)
+n3.fft <- eegfft(x = n3, Fs = 220, lower = 7.5, upper = 13)
+n3.TP <- log(n3.fft$strength[,1]) - log(n3.fft$strength[,4])
+mean(n3.TP)
+n3.FP <- log(n3.fft$strength[,2]) - log(n3.fft$strength[,3])
+mean(n3.FP)
+
+
+result1 <- rbind(c('positive TP', 'positive FP'),
+                c(mean(p1.TP), mean(p1.FP)),
+                c('negative TP', 'negative FP'),
+                c(mean(n1.TP), mean(n1.FP)))
+png(filename="a_positive1.png")
+eegpsd(p1, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="a_negative1.png")
+eegpsd(n1, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+
+result2 <- rbind(c('positive TP', 'positive FP'),
+                 c(mean(p2.TP), mean(p2.FP)),
+                 c('stress TP', 'stress FP'),
+                 c(mean(s2.TP), mean(s2.FP)))
+png(filename="a_positive2.png")
+eegpsd(p2, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="a_stress2.png")
+eegpsd(s2, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+
+result3 <- rbind(c('positive TP', 'positive FP'),
+                 c(mean(p3.TP), mean(p3.FP)),
+                 c('negative TP', 'negative FP'),
+                 c(mean(n3.TP), mean(n3.FP)))
+png(filename="a_positive3.png")
+eegpsd(p3, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+png(filename="a_negative3.png")
+eegpsd(n3, Fs=220, lower = 7.5, upper = 13)
+dev.off()
+
+write.csv(x = result1, file = 'result1.csv')
+write.csv(x = result2, file = 'result2.csv')
+write.csv(x = result3, file = 'result3.csv')
+rm(list=ls())
